@@ -26,7 +26,6 @@ def get_downloads_folder(downloads_folder: str=None) -> str:
     return downloads_folder
 
 def recursively_list_all_files(folder_start: str,
-                               inclusion_function: callable=isfile, 
                                exclusion: str='.DS_Store') -> list[str]:
 
     if isinstance(exclusion, str):
@@ -34,33 +33,35 @@ def recursively_list_all_files(folder_start: str,
     exclusion = list(exclusion)
 
     files = set()
-    tmp = set([join(folder_start, i) for i in listdir(folder_start) if i not in exclusion])
+    tmp = set([join(folder_start, i) for i in listdir(folder_start)])
     for t in tmp:
-        if inclusion_function(t):
+        if isdir(t) and all([basename(t) != e for e in exclusion]):
             files |= {t}
         else:
-            files |= recursively_list_all_files(t, inclusion_function, exclusion)
+            files |= recursively_list_all_files(t, exclusion)
     
     return files
 
-def removeEmptyFolders(path: str, removeRoot=True, exclusion: str='.DS_Store') -> None:
+def recursively_remove_empty_folders(dir: str, 
+                                     remove_root: bool=True, 
+                                     exclusion_file: str='.DS_Store') -> None:
     """
     source: https://gist.github.com/jacobtomlinson/9031697?permalink_comment_id=3267924
     """
-    if not isdir(path):
+    if not isdir(dir):
         return
 
     # remove empty subfolders
-    files = [join(path, i) for i in listdir(path) if i not in exclusion]
+    files = listdir(dir)
     if len(files):
         for f in files:
             if isdir(f): # I believe this can be removed
-                removeEmptyFolders(f)
+                recursively_remove_empty_folders(join(dir, f), remove_root, exclusion_file)
 
     # if folder empty, delete it
-    files = listdir(path)
-    if removeRoot and not len(files):
-        os.rmdir(path)
+    files = listdir(dir)
+    if remove_root and ((not len(files)) or ((len(files == 1) and files[0] == exclusion_file))):
+        os.rmdir(dir)
 
 def recursion(x: str, f: callable, exclusion: list[str]):
     if f(x): return x
@@ -137,7 +138,7 @@ def main(folder_name: str,
             shutil.move(file, where_everything_will_be_moved_to + to_add + filesep + basename(file))
         
         # the directory target now should be empty of files. This should work
-        removeEmptyFolders(target)
+        recursively_remove_empty_folders(target)
 
 def tests() -> None:
     true_downloads_folder = '/Users/vicentcaselles/Downloads'
