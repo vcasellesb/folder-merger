@@ -3,7 +3,6 @@ import shutil
 from glob import glob
 
 listdir = os.listdir
-
 filesep = os.path.sep
 join = os.path.join
 basename = os.path.basename
@@ -33,9 +32,9 @@ def recursively_list_all_files(folder_start: str,
     exclusion = list(exclusion)
 
     files = set()
-    tmp = set([join(folder_start, i) for i in listdir(folder_start)])
+    tmp = set([join(folder_start, i) for i in listdir(folder_start) if all([i != e for e in exclusion])])
     for t in tmp:
-        if isdir(t) and all([basename(t) != e for e in exclusion]):
+        if isfile(t):
             files |= {t}
         else:
             files |= recursively_list_all_files(t, exclusion)
@@ -55,13 +54,19 @@ def recursively_remove_empty_folders(dir: str,
     files = listdir(dir)
     if len(files):
         for f in files:
-            if isdir(f): # I believe this can be removed
+            if isdir(join(dir, f)):
                 recursively_remove_empty_folders(join(dir, f), remove_root, exclusion_file)
 
     # if folder empty, delete it
     files = listdir(dir)
-    if remove_root and ((not len(files)) or ((len(files == 1) and files[0] == exclusion_file))):
-        os.rmdir(dir)
+    if remove_root: 
+        if not len(files):
+            os.rmdir(dir)
+        elif len(files) == 1 and files[0] == exclusion_file:
+            os.remove(join(dir, exclusion_file))
+            os.rmdir(dir)
+        else:
+            print('Unable to remove "', dir, '". Non-empty directory.', sep="")
 
 def recursion(x: str, f: callable, exclusion: list[str]):
     if f(x): return x
@@ -135,10 +140,28 @@ def main(folder_name: str,
 
             to_add = second[myindex:].strip(basename(file))
             maybe_make_dir(where_everything_will_be_moved_to + to_add)
-            shutil.move(file, where_everything_will_be_moved_to + to_add + filesep + basename(file))
+            shutil.move(file, where_everything_will_be_moved_to + to_add + basename(file))
         
         # the directory target now should be empty of files. This should work
         recursively_remove_empty_folders(target)
+
+def downloads_drive_fix_entrypoint() -> None:
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('folder_name', type=str, help='[REQUIRED] The folder name that you wish to merge')
+    parser.add_argument('--downloads_folder', default=None, type=str,
+                        help='[OPTIONAL] Downloads folder where the targets reside. If not specified, '
+                             'it will be assumed to be at "~/Downloads".')
+    parser.add_argument('--destination', type=str, default=None,
+                        help='[OPTIONAL] Where everything will be moved to. By default, we assumes it will be '
+                             '"<downloads_folder>/<folder_name>".')
+    
+    args = parser.parse_args()
+    main(
+        args.folder_name,
+        args.downloads_folder,
+        args.destination
+    )
 
 def tests() -> None:
     true_downloads_folder = '/Users/vicentcaselles/Downloads'
@@ -166,8 +189,10 @@ def tests() -> None:
 
 if __name__ == "__main__":
     # we test main
-    main(
-        folder_name='dataset_generated_new',
-        downloads_folder='/Users/vicentcaselles/Downloads',
-        where_everything_will_be_moved_to='/Users/vicentcaselles/work/research/project_MARCOS/dataset_generated_new'
-    )
+    # main(
+    #     folder_name='dataset_generated_new',
+    #     downloads_folder='/Users/vicentcaselles/Downloads',
+    #     where_everything_will_be_moved_to='/Users/vicentcaselles/work/research/project_MARCOS/dataset_generated_new'
+    # )
+
+    downloads_drive_fix_entrypoint()
