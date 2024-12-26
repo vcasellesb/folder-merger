@@ -148,12 +148,13 @@ def main(folder_name: str,
 def downloads_drive_fix_entrypoint() -> None:
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('folder_name', type=str, help='[REQUIRED] The folder name that you wish to merge')
+    parser.add_argument('folder_name', type=str, help='The folder name that you wish to merge. Will be '
+                                                      'fed to glob.')
     parser.add_argument('--downloads_folder', default=None, type=str,
                         help='[OPTIONAL] Downloads folder where the targets reside. If not specified, '
                              'it will be assumed to be at "~/Downloads".')
     parser.add_argument('--destination', type=str, default=None,
-                        help='[OPTIONAL] Where everything will be moved to. By default, we assumes it will be '
+                        help='[OPTIONAL] Where everything will be moved to. By default, we assume it will be '
                              '"<downloads_folder>/<folder_name>".')
     
     args = parser.parse_args()
